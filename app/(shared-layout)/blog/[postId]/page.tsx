@@ -4,8 +4,8 @@ import { CommentSection } from "@/components/web/CommentSection";
 import PostPresence from "@/components/web/PostPresence";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { getToken } from "@/lib/auth-server";
-import { fetchQuery, preloadQuery } from "convex/nextjs";
+import { fetchAuthQuery, isAuthenticated, preloadAuthQuery } from "@/lib/auth-server";
+import { fetchQuery} from "convex/nextjs";
 import { ArrowLeft } from "lucide-react";
 import { Metadata } from "next";
 import Image from "next/image";
@@ -38,14 +38,16 @@ export async function generateMetadata({
 export default async function PostIdRoute({ params }: PostIdRouteProps) {
   const { postId } = await params;
 
-  const token = await getToken();
+  if(!(await isAuthenticated())){
+    return redirect("/auth/login")
+  }
 
   const [post, preloadedComments, userId] = await Promise.all([
-    await fetchQuery(api.posts.getPostById, { postId: postId }),
-    await preloadQuery(api.comments.getCommentsByPostId, {
+    await fetchAuthQuery(api.posts.getPostById, { postId: postId }),
+    await preloadAuthQuery(api.comments.getCommentsByPostId, {
       postId: postId,
     }),
-    await fetchQuery(api.presence.getUserId, {}, { token }),
+    await fetchAuthQuery(api.presence.getUserId, {}),
   ]);
 
   if (!userId) {
