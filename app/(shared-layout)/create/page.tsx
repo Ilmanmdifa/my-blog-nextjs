@@ -50,6 +50,7 @@ export default function CreateRoute() {
       form.reset();
       setFileKey((key) => key + 1);
       router.push("/blog");
+      router.refresh();
     });
   }
   return (

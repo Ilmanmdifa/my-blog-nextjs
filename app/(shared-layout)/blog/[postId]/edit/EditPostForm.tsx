@@ -61,6 +61,7 @@ export function EditPostForm({
       form.reset(values);
       setFileKey((key) => key + 1);
       router.push(`/blog/${postId}`);
+      router.refresh();
     });
   }
 

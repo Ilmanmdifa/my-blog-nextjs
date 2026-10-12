@@ -24,6 +24,7 @@ export function DeletePostButton({ postId }: { postId: Id<"posts"> }) {
       }
       toast.success("Post deleted");
       router.push("/blog");
+      router.refresh();
     });
   }
 
