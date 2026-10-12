@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "1mb",
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -11,7 +16,7 @@ const nextConfig: NextConfig = {
         port: "",
       },
       {
-        hostname: "fiery-robin-727.convex.cloud",
+        hostname: "*.convex.cloud",
         protocol: "https",
         port: "",
       },

@@ -37,3 +37,28 @@ export const createComment = mutation({
     });
   },
 });
+
+export const deleteComment = mutation({
+  args: {
+    commentId: v.id("comments"),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError("Unauthorized");
+    }
+
+    const comment = await ctx.db.get(args.commentId);
+    if (!comment) {
+      throw new ConvexError("Not found");
+    }
+    if (comment.authorId !== user._id) {
+      throw new ConvexError("Forbidden");
+    }
+
+    await ctx.db.delete(args.commentId);
+
+    return args.commentId;
+  },
+});

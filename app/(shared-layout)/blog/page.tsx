@@ -1,16 +1,19 @@
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 import { fetchQuery } from "convex/nextjs";
 import { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
+import { LoadMorePosts } from "./LoadMorePosts";
+import { PostCard } from "./PostCard";
+import { buttonVariants } from "@/components/ui/button";
+import { PenLine } from "lucide-react";
+
+const PAGE_SIZE = 9;
 
 export const metadata: Metadata = {
-  title: "NextPro | BLog",
+  title: "NextPro | Blog",
   description: "Read our latest articles and insights.",
   category: "Web development",
   authors: [{ name: "Ilman M Difa" }],
@@ -21,63 +24,53 @@ export default function BlogPage() {
     <div className="py-12">
       <div className="text-center pb-12">
         <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
-          Out Blog
+          Our Blog
         </h1>
         <p className="pt-4 max-w-2xl mx-auto text-xl text-muted-foreground">
           Insights, thoughts, and trends from our team.
         </p>
       </div>
       <Suspense fallback={<SkeletonLoadingUi />}>
-        <LoadBLogList />
+        <LoadBlogList />
       </Suspense>
     </div>
   );
 }
 
-async function LoadBLogList() {
+async function LoadBlogList() {
   "use cache";
   cacheLife("hours");
   cacheTag("blog");
   const data = await fetchQuery(api.posts.getPosts);
+  const firstPage = data?.slice(0, PAGE_SIZE) ?? [];
+
+  if (firstPage.length === 0) {
+    return (
+      <div className="text-center border rounded-xl py-16 px-4">
+        <h2 className="text-xl font-bold">No posts yet</h2>
+        <p className="text-muted-foreground mt-2">
+          Be the first to publish something.
+        </p>
+        <Link className={buttonVariants({ className: "mt-6" })} href="/create">
+          <PenLine className="size-4" />
+          Start writing
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {data?.map((post) => (
-        <Card key={post._id} className="pt-0">
-          <div className="relative h-48 w-full overflow-hidden">
-            <Image
-              src={
-                post.imageUrl ??
-                "https://plus.unsplash.com/premium_photo-1765838785521-f8905414beb4?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-              }
-              alt="image"
-              fill
-              className="rounded-t-lg object-cover"
-            />
-          </div>
-
-          <CardContent>
-            <Link href={`/blog/${post._id}`}>
-              <h1 className="text-2xl font-bold hover:text-primary">
-                {post.title}
-              </h1>
-              <p className="text-muted-foreground line-clamp-3">{post.body}</p>
-            </Link>
-          </CardContent>
-
-          <CardFooter>
-            <Link
-              className={buttonVariants({
-                className: "w-full",
-              })}
-              href={`/blog/${post._id}`}
-            >
-              Read more
-            </Link>
-          </CardFooter>
-        </Card>
-      ))}
-    </div>
+    <>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {firstPage.map((post) => (
+          <PostCard key={post._id} post={post} />
+        ))}
+      </div>
+      <LoadMorePosts
+        firstPageIds={firstPage.map((post) => post._id)}
+        oldestFirstPageTime={firstPage[firstPage.length - 1]._creationTime}
+      />
+    </>
   );
 }
 

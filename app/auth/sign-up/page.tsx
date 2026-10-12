@@ -23,12 +23,20 @@ import { authClient } from "@/lib/auth-client";
 import z from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { Loader2 } from "lucide-react";
+import { useConvexAuth } from "convex/react";
 
 export default function SignUpPage() {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
+
+  useEffect(() => {
+    if (!isAuthLoading && isAuthenticated) {
+      router.replace("/");
+    }
+  }, [isAuthLoading, isAuthenticated, router]);
   const form = useForm({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -48,6 +56,7 @@ export default function SignUpPage() {
           onSuccess: () => {
             toast.success("Account created successfully");
             router.push("/");
+            router.refresh();
           },
           onError: (error) => {
             toast.error(error.error.message);
