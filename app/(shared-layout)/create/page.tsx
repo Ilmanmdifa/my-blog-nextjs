@@ -20,12 +20,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import z from "zod";
 
 export default function CreateRoute() {
   const [isPending, startTransition] = useTransition();
+  const [fileKey, setFileKey] = useState(0);
+  const router = useRouter();
   const form = useForm({
     resolver: zodResolver(postSchema),
     defaultValues: {
@@ -37,8 +41,15 @@ export default function CreateRoute() {
 
   function onSubmit(values: z.infer<typeof postSchema>) {
     startTransition(async () => {
-      console.log("this is from the  client side");
-      await createBlogPost(values);
+      const result = await createBlogPost(values);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Post created");
+      form.reset();
+      setFileKey((key) => key + 1);
+      router.push("/blog");
     });
   }
   return (
@@ -54,7 +65,7 @@ export default function CreateRoute() {
 
       <Card className="w-full max-w-xl mx-auto">
         <CardHeader>
-          <CardTitle>Create BLog Article</CardTitle>
+          <CardTitle>Create Blog Article</CardTitle>
           <CardDescription>Create a new Blog Article</CardDescription>
         </CardHeader>
         <CardContent>
@@ -101,6 +112,7 @@ export default function CreateRoute() {
                   <Field>
                     <FieldLabel>Image</FieldLabel>
                     <Input
+                      key={fileKey}
                       aria-invalid={fieldState.invalid}
                       placeholder="Write your post content here..."
                       type="file"

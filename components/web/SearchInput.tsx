@@ -1,6 +1,8 @@
+"use client";
+
 import { Loader2, Search } from "lucide-react";
 import { Input } from "../ui/input";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
@@ -8,18 +10,45 @@ import Link from "next/link";
 export function SearchInput() {
   const [term, setTerm] = useState("");
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const results = useQuery(
     api.posts.searchPosts,
     term.length >= 2 ? { limit: 5, term: term } : "skip"
   );
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     setTerm(e.target.value);
     setOpen(true);
   }
 
   return (
-    <div className="relative w-full max-w-sm z-index-10">
+    <div ref={containerRef} className="relative w-full max-w-sm z-10">
       <div className="relative">
         <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
         <Input
@@ -32,7 +61,7 @@ export function SearchInput() {
       </div>
 
       {open && term.length >= 2 && (
-        <div className="absolute top-full mt-2 rounded-md border bg-popover text-muted-foreground shadow-md outline-none animate-in fade-in-0 zoom-in-95">
+        <div className="absolute top-full mt-2 w-full rounded-md border bg-popover text-muted-foreground shadow-md outline-none animate-in fade-in-0 zoom-in-95">
           {results === undefined ? (
             <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
               <Loader2 className="mr-2 size-4 animate-spin" /> Searching...

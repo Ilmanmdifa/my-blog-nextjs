@@ -6,11 +6,14 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { fetchAuthQuery, isAuthenticated, preloadAuthQuery } from "@/lib/auth-server";
 import { fetchQuery} from "convex/nextjs";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { DeletePostButton } from "./DeletePostButton";
 
 interface PostIdRouteProps {
   params: Promise<{
@@ -22,7 +25,7 @@ export async function generateMetadata({
   params,
 }: PostIdRouteProps): Promise<Metadata> {
   const { postId } = await params;
-  const post = await fetchQuery(api.posts.getPostById, { postId: postId });
+  const post = await getCachedPostForMetadata(postId);
 
   if (!post) {
     return {
@@ -35,7 +38,15 @@ export async function generateMetadata({
     description: post.body,
   };
 }
+
+async function getCachedPostForMetadata(postId: Id<"posts">) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("blog");
+  return fetchQuery(api.posts.getPostById, { postId: postId });
+}
 export default async function PostIdRoute({ params }: PostIdRouteProps) {
+  await connection();
   const { postId } = await params;
 
   if(!(await isAuthenticated())){
@@ -43,11 +54,11 @@ export default async function PostIdRoute({ params }: PostIdRouteProps) {
   }
 
   const [post, preloadedComments, userId] = await Promise.all([
-    await fetchAuthQuery(api.posts.getPostById, { postId: postId }),
-    await preloadAuthQuery(api.comments.getCommentsByPostId, {
+    fetchAuthQuery(api.posts.getPostById, { postId: postId }),
+    preloadAuthQuery(api.comments.getCommentsByPostId, {
       postId: postId,
     }),
-    await fetchAuthQuery(api.presence.getUserId, {}),
+    fetchAuthQuery(api.presence.getUserId, {}),
   ]);
 
   if (!userId) {
@@ -90,10 +101,22 @@ export default async function PostIdRoute({ params }: PostIdRouteProps) {
         <div className="flex items-center gap-2">
           <p className="text-sm text-muted-foreground">
             Posted on:{" "}
-            {new Date(post._creationTime).toLocaleDateString("id-ID")}
+            {new Date(post._creationTime).toLocaleDateString("en-US")}
           </p>
           {userId && <PostPresence roomId={post._id} userId={userId} />}
         </div>
+        {userId && post.authorId === userId && (
+          <div className="flex items-center gap-2 pt-2">
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href={`/blog/${post._id}/edit`}
+            >
+              <Pencil className="size-4" />
+              Edit
+            </Link>
+            <DeletePostButton postId={post._id} />
+          </div>
+        )}
       </div>
       <Separator className="m-8" />
       <p className="text-lg leading-relaxed text-foreground/90 whitespace-pre-wrap">
